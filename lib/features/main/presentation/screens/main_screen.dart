@@ -26,6 +26,7 @@ class MainScreen extends StatelessWidget {
               onPressed: () {
                 // Переход на экран с деталями
                 unawaited(context.pushNamed(MainRoutes.mainDetailScreenName));
+                
               },
               child: const Text('Переход на экран с деталями'),
             ),

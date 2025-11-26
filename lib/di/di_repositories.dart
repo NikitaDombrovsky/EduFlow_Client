@@ -14,6 +14,10 @@ import 'package:friflex_starter/features/profile/domain/repository/i_profile_rep
 import 'package:friflex_starter/features/update/data/repository/update_mock_repository.dart';
 import 'package:friflex_starter/features/update/data/repository/update_repository.dart';
 import 'package:friflex_starter/features/update/domain/repository/i_update_repository.dart';
+// В секцию импортов добавить:
+import 'package:friflex_starter/features/material_builder/data/repository/material_builder_mock_repository.dart';
+import 'package:friflex_starter/features/material_builder/data/repository/material_builder_repository.dart';
+import 'package:friflex_starter/features/material_builder/domain/repository/i_material_builder_repository.dart';
 
 /// Список названий моковых репозиториев, которые должны быть подменены
 /// для использования в сборке stage окружения.
@@ -56,6 +60,10 @@ final class DiRepositories {
 
   /// Интерфейс для работы с репозиторием обновлений
   late final IUpdateRepository updatesRepository;
+
+  // В класс DiRepositories добавить поле:
+  /// Интерфейс для работы с репозиторием создания материалов
+  late final IMaterialBuilderRepository materialBuilderRepository;
 
   /// Метод для инициализации репозиториев в приложении.
   ///
@@ -128,6 +136,21 @@ final class DiRepositories {
 
     onProgress(
       'Инициализация репозиториев завершена! Было подменено репозиториев - ${_mockReposToSwitch.length} (${_mockReposToSwitch.join(', ')})',
+    );
+
+    // В метод init() добавить инициализацию:
+    // Инициализация репозитория создания материалов
+    materialBuilderRepository = _lazyInitRepo<IMaterialBuilderRepository>(
+      mockFactory: MaterialBuilderMockRepository.new,
+      mainFactory: () => MaterialBuilderRepository(
+        httpClient: diContainer.httpClientFactory(
+          diContainer.debugService,
+          diContainer.appConfig,
+        ),
+      ),
+      onProgress: onProgress,
+      onError: onError,
+      environment: diContainer.env,
     );
   }
 

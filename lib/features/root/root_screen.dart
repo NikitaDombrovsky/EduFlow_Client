@@ -75,6 +75,7 @@ class _RootScreenState extends State<RootScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+          BottomNavigationBarItem(icon: Icon(Icons.abc), label: 'Тест'),
         ],
         currentIndex: widget.navigationShell.currentIndex,
         onTap: widget.navigationShell.goBranch,
