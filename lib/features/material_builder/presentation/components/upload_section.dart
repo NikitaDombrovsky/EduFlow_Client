@@ -16,63 +16,65 @@ class UploadSection extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 600),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.upload_file,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-            ),
-            const HBox(24),
-            Text(
-              'Загрузите документ для обработки',
-              style: Theme.of(context).textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const HBox(12),
-            Text(
-              'Поддерживаемые форматы: DOCX, PDF, Markdown',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.upload_file,
+                size: 80,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
               ),
-              textAlign: TextAlign.center,
-            ),
-            const HBox(32),
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                  width: 2,
-                  strokeAlign: BorderSide.strokeAlignInside,
+              const HBox(24),
+              Text(
+                'Загрузите документ для обработки',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const HBox(12),
+              Text(
+                'Поддерживаемые форматы: DOCX, PDF, Markdown',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
-                borderRadius: BorderRadius.circular(12),
+                textAlign: TextAlign.center,
               ),
-              child: Column(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _pickFile(context),
-                    icon: const Icon(Icons.folder_open),
-                    label: const Text('Выбрать файл'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
+              const HBox(32),
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () => _pickFile(context),
+                      icon: const Icon(Icons.folder_open),
+                      label: const Text('Выбрать файл'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
                       ),
                     ),
-                  ),
-                  const HBox(16),
-                  Text(
-                    'или перетащите файл сюда',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+                    const HBox(16),
+                    Text(
+                      'или перетащите файл сюда',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const HBox(24),
-            const _HelpSection(),
-          ],
+              const HBox(24),
+              const _HelpSection(),
+            ],
+          ),
         ),
       ),
     );

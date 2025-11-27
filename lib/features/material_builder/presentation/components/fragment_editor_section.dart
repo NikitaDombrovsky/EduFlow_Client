@@ -16,17 +16,24 @@ class FragmentEditorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _HeaderSection(material: material),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: material.fragments.length,
-            itemBuilder: (context, index) {
-              final fragment = material.fragments[index];
-              return _FragmentCard(fragment: fragment);
-            },
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: _HeaderSection(material: material),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final fragment = material.fragments[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _FragmentCard(fragment: fragment),
+                );
+              },
+              childCount: material.fragments.length,
+            ),
           ),
         ),
       ],
@@ -60,6 +67,7 @@ class _HeaderSection extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             material.originalFileName,
@@ -67,16 +75,20 @@ class _HeaderSection extends StatelessWidget {
           ),
           const HBox(8),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.check_circle,
                 size: 16,
                 color: Colors.green,
               ),
               const WBox(4),
-              Text(
-                'Обработано фрагментов: ${material.fragments.length}',
-                style: Theme.of(context).textTheme.bodyMedium,
+              Flexible(
+                child: Text(
+                  'Обработано фрагментов: ${material.fragments.length}',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -122,16 +134,18 @@ class _FragmentCardState extends State<_FragmentCard> {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _TypeChip(type: widget.fragment.type),
-                const Spacer(),
                 if (widget.fragment.isEdited)
                   Chip(
                     label: const Text('Отредактировано'),
@@ -141,14 +155,24 @@ class _FragmentCardState extends State<_FragmentCard> {
                       color: Colors.orange.shade800,
                     ),
                   ),
-                const WBox(8),
+                const Spacer(),
                 IconButton(
                   icon: Icon(_isEditing ? Icons.check : Icons.edit),
                   onPressed: _toggleEdit,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _showDeleteDialog(context),
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
                 ),
               ],
             ),
@@ -159,6 +183,7 @@ class _FragmentCardState extends State<_FragmentCard> {
                 decoration: const InputDecoration(
                   labelText: 'Заголовок',
                   border: OutlineInputBorder(),
+                  isDense: true,
                 ),
               ),
               const HBox(12),
@@ -167,8 +192,10 @@ class _FragmentCardState extends State<_FragmentCard> {
                 decoration: const InputDecoration(
                   labelText: 'Содержимое',
                   border: OutlineInputBorder(),
+                  isDense: true,
                 ),
-                maxLines: 8,
+                maxLines: 6,
+                minLines: 3,
               ),
             ] else ...[
               if (widget.fragment.title != null) ...[
@@ -252,7 +279,8 @@ class _TypeChip extends StatelessWidget {
       avatar: Icon(icon, size: 16, color: color),
       label: Text(label),
       backgroundColor: color.withOpacity(0.1),
-      labelStyle: TextStyle(color: color.shade800),
+      labelStyle: TextStyle(color: color.shade800, fontSize: 12),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }

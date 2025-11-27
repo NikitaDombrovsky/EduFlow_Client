@@ -96,48 +96,62 @@ class _MaterialBuilderScreenView extends StatelessWidget {
             MaterialBuilderProcessedState() => FragmentEditorSection(
                 material: state.material,
               ),
-            MaterialBuilderOutputGeneratedState() => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.check_circle, size: 64, color: Colors.green),
-                    const HBox(16),
-                    Text('Документ успешно создан'),
-                    const HBox(8),
-                    Text(
-                      state.outputPath,
-                      style: Theme.of(context).textTheme.bodySmall,
+            MaterialBuilderOutputGeneratedState() => SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.check_circle, size: 64, color: Colors.green),
+                        const HBox(16),
+                        const Text('Документ успешно создан'),
+                        const HBox(8),
+                        Text(
+                          state.outputPath,
+                          style: Theme.of(context).textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const HBox(24),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<MaterialBuilderBloc>().add(
+                              const MaterialBuilderLoadMaterialsEvent(),
+                            );
+                          },
+                          child: const Text('Создать новый материал'),
+                        ),
+                      ],
                     ),
-                    const HBox(24),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<MaterialBuilderBloc>().add(
-                          const MaterialBuilderLoadMaterialsEvent(),
-                        );
-                      },
-                      child: const Text('Создать новый материал'),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             MaterialBuilderMaterialsLoadedState() => const UploadSection(),
-            MaterialBuilderErrorState() => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error, size: 64, color: Colors.red),
-                    const HBox(16),
-                    Text(state.message),
-                    const HBox(24),
-                    ElevatedButton(
-                      onPressed: () {
-                        context.read<MaterialBuilderBloc>().add(
-                          const MaterialBuilderLoadMaterialsEvent(),
-                        );
-                      },
-                      child: const Text('Попробовать снова'),
+            MaterialBuilderErrorState() => SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error, size: 64, color: Colors.red),
+                        const HBox(16),
+                        Text(
+                          state.message,
+                          textAlign: TextAlign.center,
+                        ),
+                        const HBox(24),
+                        ElevatedButton(
+                          onPressed: () {
+                            context.read<MaterialBuilderBloc>().add(
+                              const MaterialBuilderLoadMaterialsEvent(),
+                            );
+                          },
+                          child: const Text('Попробовать снова'),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
           };
