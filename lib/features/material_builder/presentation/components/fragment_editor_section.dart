@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:friflex_starter/app/ui_kit/app_box.dart';
 import 'package:friflex_starter/features/material_builder/domain/bloc/material_builder_bloc.dart';
 import 'package:friflex_starter/features/material_builder/domain/entity/material_template_entity.dart';
+import 'package:friflex_starter/features/material_builder/presentation/screens/material_editor_screen.dart';
+import 'package:go_router/go_router.dart';
 
 /// {@template FragmentEditorSection}
 /// Компонент для редактирования обработанных фрагментов
@@ -18,22 +20,17 @@ class FragmentEditorSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(
-          child: _HeaderSection(material: material),
-        ),
+        SliverToBoxAdapter(child: _HeaderSection(material: material)),
         SliverPadding(
           padding: const EdgeInsets.all(16),
           sliver: SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final fragment = material.fragments[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _FragmentCard(fragment: fragment),
-                );
-              },
-              childCount: material.fragments.length,
-            ),
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final fragment = material.fragments[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _FragmentCard(fragment: fragment),
+              );
+            }, childCount: material.fragments.length),
           ),
         ),
       ],
@@ -69,19 +66,32 @@ class _HeaderSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            material.originalFileName,
-            style: Theme.of(context).textTheme.titleLarge,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  material.originalFileName,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _openEditor(context),
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Редактировать'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
           const HBox(8),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.check_circle,
-                size: 16,
-                color: Colors.green,
-              ),
+              const Icon(Icons.check_circle, size: 16, color: Colors.green),
               const WBox(4),
               Flexible(
                 child: Text(
@@ -93,6 +103,18 @@ class _HeaderSection extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Открывает экран редактора
+  void _openEditor(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<MaterialBuilderBloc>(),
+          child: MaterialEditorScreen(material: material),
+        ),
       ),
     );
   }
@@ -141,10 +163,10 @@ class _FragmentCardState extends State<_FragmentCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Row(
-            // Wrap(
-            //   spacing: 8,
-            //   runSpacing: 8,
-            //   crossAxisAlignment: WrapCrossAlignment.center,
+              // Wrap(
+              //   spacing: 8,
+              //   runSpacing: 8,
+              //   crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _TypeChip(type: widget.fragment.type),
                 if (widget.fragment.isEdited)
@@ -273,7 +295,11 @@ class _TypeChip extends StatelessWidget {
       MaterialTemplateType.theory => (Colors.blue, Icons.book, 'Теория'),
       MaterialTemplateType.example => (Colors.green, Icons.code, 'Пример'),
       MaterialTemplateType.task => (Colors.orange, Icons.assignment, 'Задание'),
-      MaterialTemplateType.visualization => (Colors.purple, Icons.image, 'Визуализация'),
+      MaterialTemplateType.visualization => (
+        Colors.purple,
+        Icons.image,
+        'Визуализация',
+      ),
     };
 
     return Chip(

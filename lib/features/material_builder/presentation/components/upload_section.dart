@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:friflex_starter/app/ui_kit/app_box.dart';
 import 'package:friflex_starter/app/ui_kit/app_snackbar.dart';
 import 'package:friflex_starter/features/material_builder/domain/bloc/material_builder_bloc.dart';
+import 'package:friflex_starter/features/material_builder/presentation/screens/text_preview_screen.dart';
 
 /// {@template UploadSection}
 /// Компонент для загрузки документов
@@ -120,6 +121,7 @@ class _UploadSectionState extends State<UploadSection> {
       if (result != null && result.files.single.path != null) {
         final filePath = result.files.single.path!;
         final file = File(filePath);
+        final fileName = filePath.split('/').last;
 
         if (await file.exists()) {
           // Читаем содержимое файла
@@ -127,12 +129,11 @@ class _UploadSectionState extends State<UploadSection> {
           
           if (!mounted) return;
 
-          // Отправляем событие обработки документа
-          context.read<MaterialBuilderBloc>().add(
-            MaterialBuilderProcessDocumentEvent(
-              documentId: 'doc_${DateTime.now().millisecondsSinceEpoch}',
-              content: content,
-            ),
+          // Переходим к экрану предпросмотра
+          await _navigateToPreview(
+            documentId: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+            content: content,
+            fileName: fileName,
           );
         } else {
           if (!mounted) return;
@@ -214,17 +215,11 @@ class _UploadSectionState extends State<UploadSection> {
           return;
         }
 
-        // Отправляем событие обработки документа
-        context.read<MaterialBuilderBloc>().add(
-          MaterialBuilderProcessDocumentEvent(
-            documentId: 'clipboard_${DateTime.now().millisecondsSinceEpoch}',
-            content: text,
-          ),
-        );
-
-        AppSnackBar.showSuccess(
-          context: context,
-          message: 'Текст успешно вставлен (${text.length} символов)',
+        // Переходим к экрану предпросмотра
+        await _navigateToPreview(
+          documentId: 'clipboard_${DateTime.now().millisecondsSinceEpoch}',
+          content: text,
+          fileName: 'Текст из буфера обмена',
         );
       } else {
         AppSnackBar.showError(
@@ -249,6 +244,26 @@ class _UploadSectionState extends State<UploadSection> {
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  /// Переходит к экрану предпросмотра текста
+  Future<void> _navigateToPreview({
+    required String documentId,
+    required String content,
+    required String fileName,
+  }) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: context.read<MaterialBuilderBloc>(),
+          child: TextPreviewScreen(
+            documentId: documentId,
+            initialText: content,
+            fileName: fileName,
+          ),
+        ),
+      ),
+    );
   }
 }
 
