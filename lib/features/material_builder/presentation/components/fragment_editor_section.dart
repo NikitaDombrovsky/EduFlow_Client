@@ -140,10 +140,11 @@ class _FragmentCardState extends State<_FragmentCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
+            // Wrap(
+            //   spacing: 8,
+            //   runSpacing: 8,
+            //   crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _TypeChip(type: widget.fragment.type),
                 if (widget.fragment.isEdited)

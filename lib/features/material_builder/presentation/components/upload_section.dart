@@ -1,14 +1,26 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:friflex_starter/app/ui_kit/app_box.dart';
+import 'package:friflex_starter/app/ui_kit/app_snackbar.dart';
 import 'package:friflex_starter/features/material_builder/domain/bloc/material_builder_bloc.dart';
 
 /// {@template UploadSection}
 /// Компонент для загрузки документов
 /// {@endtemplate}
-class UploadSection extends StatelessWidget {
+class UploadSection extends StatefulWidget {
   /// {@macro UploadSection}
   const UploadSection({super.key});
+
+  @override
+  State<UploadSection> createState() => _UploadSectionState();
+}
+
+class _UploadSectionState extends State<UploadSection> {
+  bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +45,7 @@ class UploadSection extends StatelessWidget {
               ),
               const HBox(12),
               Text(
-                'Поддерживаемые форматы: DOCX, PDF, Markdown',
+                'Поддерживаемые форматы: DOCX, PDF, Markdown, TXT',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                 ),
@@ -51,23 +63,35 @@ class UploadSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _pickFile(context),
-                      icon: const Icon(Icons.folder_open),
-                      label: const Text('Выбрать файл'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
+                    if (_isProcessing)
+                      const CircularProgressIndicator()
+                    else ...[
+                      ElevatedButton.icon(
+                        onPressed: _pickFile,
+                        icon: const Icon(Icons.folder_open),
+                        label: const Text('Выбрать файл'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
                         ),
                       ),
-                    ),
-                    const HBox(16),
-                    Text(
-                      'или перетащите файл сюда',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                      const HBox(16),
+                      OutlinedButton.icon(
+                        onPressed: _pasteFromClipboard,
+                        icon: const Icon(Icons.content_paste),
+                        label: const Text('Вставить текст'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -80,28 +104,151 @@ class UploadSection extends StatelessWidget {
     );
   }
 
-  /// Открывает диалог выбора файла
-  void _pickFile(BuildContext context) {
-    // TODO(dev): Интеграция с file_picker
-    // Пример использования:
-    // final result = await FilePicker.platform.pickFiles(
-    //   type: FileType.custom,
-    //   allowedExtensions: ['docx', 'pdf', 'md'],
-    // );
-    // if (result != null && result.files.single.path != null) {
-    //   context.read<MaterialBuilderBloc>().add(
-    //     MaterialBuilderUploadDocumentEvent(
-    //       filePath: result.files.single.path!,
-    //     ),
-    //   );
-    // }
+  /// Открывает системный файловый менеджер для выбора файла
+  Future<void> _pickFile() async {
+    try {
+      setState(() => _isProcessing = true);
 
-    // Временная демонстрация
-    context.read<MaterialBuilderBloc>().add(
-      const MaterialBuilderUploadDocumentEvent(
-        filePath: '/demo/sample.docx',
-      ),
-    );
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['docx', 'pdf', 'md', 'txt'],
+        allowMultiple: false,
+      );
+
+      if (!mounted) return;
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
+        final file = File(filePath);
+
+        if (await file.exists()) {
+          // Читаем содержимое файла
+          final content = await _readFileContent(file, filePath);
+          
+          if (!mounted) return;
+
+          // Отправляем событие обработки документа
+          context.read<MaterialBuilderBloc>().add(
+            MaterialBuilderProcessDocumentEvent(
+              documentId: 'doc_${DateTime.now().millisecondsSinceEpoch}',
+              content: content,
+            ),
+          );
+        } else {
+          if (!mounted) return;
+          AppSnackBar.showError(
+            context,
+            message: 'Файл не найден',
+          );
+        }
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        message: 'Ошибка доступа к файлу: ${e.message}',
+      );
+    } on Object catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        message: 'Ошибка при выборе файла: $e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
+
+  /// Читает содержимое файла в зависимости от расширения
+  Future<String> _readFileContent(File file, String filePath) async {
+    final extension = filePath.split('.').last.toLowerCase();
+
+    switch (extension) {
+      case 'txt':
+      case 'md':
+        // Текстовые файлы читаем напрямую
+        return await file.readAsString();
+      
+      case 'docx':
+        // TODO(dev): Добавить парсинг DOCX через docx_to_text или аналог
+        // Временно возвращаем сообщение
+        return 'DOCX файл: ${filePath.split('/').last}\n\nДля полной обработки DOCX требуется интеграция с backend.';
+      
+      case 'pdf':
+        // TODO(dev): Добавить парсинг PDF через pdf_text или аналог
+        // Временно возвращаем сообщение
+        return 'PDF файл: ${filePath.split('/').last}\n\nДля полной обработки PDF требуется интеграция с backend.';
+      
+      default:
+        throw Exception('Неподдерживаемый формат файла');
+    }
+  }
+
+  /// Вставляет текст из буфера обмена
+  Future<void> _pasteFromClipboard() async {
+    try {
+      setState(() => _isProcessing = true);
+
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+
+      if (!mounted) return;
+
+      if (clipboardData != null && clipboardData.text != null) {
+        final text = clipboardData.text!.trim();
+
+        if (text.isEmpty) {
+          AppSnackBar.showInfo(
+            context,
+            message: 'Буфер обмена пуст',
+          );
+          return;
+        }
+
+        if (text.length < 10) {
+          AppSnackBar.showError(
+            context,
+            message: 'Слишком мало текста для обработки (минимум 10 символов)',
+          );
+          return;
+        }
+
+        // Отправляем событие обработки документа
+        context.read<MaterialBuilderBloc>().add(
+          MaterialBuilderProcessDocumentEvent(
+            documentId: 'clipboard_${DateTime.now().millisecondsSinceEpoch}',
+            content: text,
+          ),
+        );
+
+        AppSnackBar.showSuccess(
+          context: context,
+          message: 'Текст успешно вставлен (${text.length} символов)',
+        );
+      } else {
+        AppSnackBar.showError(
+          context,
+          message: 'Буфер обмена пуст или не содержит текст',
+        );
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        message: 'Ошибка доступа к буферу обмена: ${e.message}',
+      );
+    } on Object catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        message: 'Ошибка при вставке текста: $e',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
   }
 }
 
@@ -141,7 +288,7 @@ class _HelpSection extends StatelessWidget {
             const HBox(12),
             _HelpItem(
               number: '1',
-              text: 'Загрузите документ с учебным материалом',
+              text: 'Выберите файл или вставьте текст из буфера обмена',
             ),
             _HelpItem(
               number: '2',

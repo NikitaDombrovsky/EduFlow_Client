@@ -23,6 +23,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   lottie: 3.3.2
+  file_picker: ^8.1.6
 
   # Пакеты для отладки
   talker_flutter: 5.0.2
