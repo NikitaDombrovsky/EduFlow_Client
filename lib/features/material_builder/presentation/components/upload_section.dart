@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:friflex_starter/app/ui_kit/app_box.dart';
 import 'package:friflex_starter/app/ui_kit/app_snackbar.dart';
@@ -22,6 +26,8 @@ class UploadSection extends StatefulWidget {
 
 class _UploadSectionState extends State<UploadSection> {
   bool _isProcessing = false;
+  DropzoneViewController? _dropzoneController;
+  bool _isDraggingOver = false;
 
   @override
   Widget build(BuildContext context) {
@@ -53,48 +59,107 @@ class _UploadSectionState extends State<UploadSection> {
                 textAlign: TextAlign.center,
               ),
               const HBox(32),
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    width: 2,
-                    strokeAlign: BorderSide.strokeAlignInside,
+              Stack(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: (_isDraggingOver
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.3)),
+                        width: 2,
+                        strokeAlign: BorderSide.strokeAlignInside,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: _isDraggingOver
+                          ? Theme.of(context)
+                              .colorScheme
+                              .primaryContainer
+                              .withOpacity(0.2)
+                          : null,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isProcessing)
+                          const CircularProgressIndicator()
+                        else ...[
+                          Icon(
+                            Icons.cloud_upload,
+                            size: 48,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.6),
+                          ),
+                          const HBox(8),
+                          Text(
+                            'Перетащите файл сюда или выберите вручную',
+                            textAlign: TextAlign.center,
+                          ),
+                          const HBox(16),
+                          ElevatedButton.icon(
+                            onPressed: _pickFile,
+                            icon: const Icon(Icons.folder_open),
+                            label: const Text('Выбрать файл'),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                          const HBox(16),
+                          OutlinedButton.icon(
+                            onPressed: _pasteFromClipboard,
+                            icon: const Icon(Icons.content_paste),
+                            label: const Text('Вставить текст'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_isProcessing)
-                      const CircularProgressIndicator()
-                    else ...[
-                      ElevatedButton.icon(
-                        onPressed: _pickFile,
-                        icon: const Icon(Icons.folder_open),
-                        label: const Text('Выбрать файл'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
+                  if (kIsWeb)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        ignoring: _isProcessing,
+                        child: DropzoneView(
+                          onCreated: (controller) => _dropzoneController = controller,
+                          onDrop: (ev) async {
+                            if (_isProcessing) return;
+                            setState(() => _isProcessing = true);
+                            try {
+                              final name = await _dropzoneController!.getFilename(ev);
+                              final mime = await _dropzoneController!.getFileMIME(ev);
+                              final data = await _dropzoneController!.getFileData(ev);
+                              await _processDroppedFile(name, mime, data);
+                            } on Object catch (e) {
+                              if (!mounted) return;
+                              AppSnackBar.showError(
+                                context,
+                                message: 'Ошибка загрузки файла: $e',
+                              );
+                            } finally {
+                              if (mounted) setState(() => _isProcessing = false);
+                            }
+                          },
+                          onHover: () => setState(() => _isDraggingOver = true),
+                          onLeave: () => setState(() => _isDraggingOver = false),
                         ),
                       ),
-                      const HBox(16),
-                      OutlinedButton.icon(
-                        onPressed: _pasteFromClipboard,
-                        icon: const Icon(Icons.content_paste),
-                        label: const Text('Вставить текст'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                    ),
+                ],
               ),
               const HBox(24),
               const _HelpSection(),
@@ -185,6 +250,36 @@ class _UploadSectionState extends State<UploadSection> {
       default:
         throw Exception('Неподдерживаемый формат файла');
     }
+  }
+
+  Future<void> _processDroppedFile(
+    String fileName,
+    String mime,
+    Uint8List data,
+  ) async {
+    final ext = fileName.split('.').last.toLowerCase();
+    late final String content;
+
+    switch (ext) {
+      case 'txt':
+      case 'md':
+        content = utf8.decode(data, allowMalformed: true);
+        break;
+      case 'docx':
+        content = 'DOCX файл: $fileName\n\nДля полной обработки DOCX требуется интеграция с backend.';
+        break;
+      case 'pdf':
+        content = 'PDF файл: $fileName\n\nДля полной обработки PDF требуется интеграция с backend.';
+        break;
+      default:
+        throw Exception('Неподдерживаемый формат файла');
+    }
+
+    await _navigateToPreview(
+      documentId: 'web_${DateTime.now().millisecondsSinceEpoch}',
+      content: content,
+      fileName: fileName,
+    );
   }
 
   /// Вставляет текст из буфера обмена
